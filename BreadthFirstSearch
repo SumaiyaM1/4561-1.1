@@ -1,0 +1,46 @@
+package search_methods;
+
+import java.util.*;
+
+public class BreadthFirstSearch {
+    private Map<String, List<String>> graph;
+
+    public BreadthFirstSearch(Map<String, List<String>> graph) {
+        this.graph = graph;
+    }
+
+    public List<String> findRoute(String start, String goal) {
+        Queue<String> queue = new LinkedList<>();
+        Map<String, String> predecessors = new HashMap<>();
+        Set<String> visited = new HashSet<>();
+
+        queue.add(start);
+        visited.add(start);
+
+        while (!queue.isEmpty()) {
+            String city = queue.poll();
+
+            if (city.equals(goal)) {
+                return reconstructPath(predecessors, start, goal);
+            }
+
+            for (String neighbor : graph.getOrDefault(city, Collections.emptyList())) {
+                if (!visited.contains(neighbor)) {
+                    queue.add(neighbor);
+                    visited.add(neighbor);
+                    predecessors.put(neighbor, city);
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<String> reconstructPath(Map<String, String> predecessors, String start, String goal) {
+        List<String> path = new ArrayList<>();
+        for (String step = goal; step != null; step = predecessors.get(step)) {
+            path.add(step);
+        }
+        Collections.reverse(path);
+        return path;
+    }
+}
