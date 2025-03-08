@@ -1,0 +1,117 @@
+package search_methods;
+
+import java.io.*;
+import java.util.*;
+
+public class Search_Meathods {
+
+    public static void main(String[] args) {
+        Map<String, List<String>> graph = loadGraph("data/adjacencies.txt");
+        Map<String, Town> locations = loadCities("data/coordinates.csv");
+
+        try (Scanner scanner = new Scanner(System.in)) {
+            boolean running = true;
+            while (running) {
+                System.out.print("Enter start town: ");
+                String start = scanner.nextLine().trim();
+                System.out.print("Enter destination town: ");
+                String destination = scanner.nextLine().trim();
+
+                if (!graph.containsKey(start) || !graph.containsKey(destination)) {
+                    System.out.println("Invalid town names. Try again.");
+                    continue;
+                }
+
+                System.out.println("Choose search method:");
+                System.out.println("1. BFS\n2. DFS\n3. IDDFS\n4. BestFS\n5. A*");
+                int choice = scanner.nextInt();
+                scanner.nextLine();
+
+                long startTime = System.currentTimeMillis();
+                List<String> route = executeSearch(choice, start, destination, graph, locations);
+                long elapsedTime = System.currentTimeMillis() - startTime;
+                
+                if (route != null) {
+                    System.out.println("Optimal route: " + route);
+                    System.out.println("Time taken: " + (elapsedTime / 1000.0) + " seconds");
+                    System.out.println("Total distance: " + calculateTotalDistance(route, locations) + " km");
+                } else {
+                    System.out.println("No viable route found.");
+                }
+                
+                System.out.print("Perform another search? (yes/no): ");
+                running = scanner.nextLine().trim().equalsIgnoreCase("yes");
+            }
+        }
+    }
+
+    private static List<String> executeSearch(int choice, String start, String destination, Map<String, List<String>> graph, Map<String, Town> locations) {
+        switch (choice) {
+            case 1: return new BreadthFirstSearch(graph).findRoute(start, destination);
+            case 2: return new DepthFirstSearch(graph).findRoute(start, destination);
+            case 3: return new IDDFSSearch(graph).findRoute(start, destination);
+            case 4: return new BestFirstSearch(graph, locations).findRoute(start, destination);
+            case 5: return new AStarSearch(graph, locations).findRoute(start, destination);
+            default:
+                System.out.println("Invalid selection.");
+                return null;
+        }
+    }
+
+    private static Map<String, List<String>> loadGraph(String filePath) {
+        Map<String, List<String>> graph = new HashMap<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] cities = line.split(" ");
+                graph.computeIfAbsent(cities[0], k -> new ArrayList<>()).add(cities[1]);
+                graph.computeIfAbsent(cities[1], k -> new ArrayList<>()).add(cities[0]);
+            }
+        } catch (IOException e) {
+            System.out.println("File error: " + filePath);
+        }
+        return graph;
+    }
+
+    private static Map<String, Town> loadCities(String filePath) {
+        Map<String, Town> cityData = new HashMap<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(",");
+                cityData.put(data[0].trim(), new Town(data[0].trim(), Double.parseDouble(data[1]), Double.parseDouble(data[2])));
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading town data from file: " + filePath);
+        }
+        return cityData;
+    }
+
+    private static double calculateTotalDistance(List<String> route, Map<String, Town> cities) {
+        double totalDistance = 0.0;
+        for (int i = 0; i < route.size() - 1; i++) {
+            Town origin = cities.get(route.get(i));
+            Town destination = cities.get(route.get(i + 1));
+            if (origin != null && destination != null) {
+                totalDistance += computeDistance(origin, destination);
+            }
+        }
+        return totalDistance;
+    }
+
+    private static double computeDistance(Town pointA, Town pointB) {
+        double lat1 = Math.toRadians(pointA.getLatitude());
+        double lon1 = Math.toRadians(pointA.getLongitude());
+        double lat2 = Math.toRadians(pointB.getLatitude());
+        double lon2 = Math.toRadians(pointB.getLongitude());
+        
+        double deltaLat = lat2 - lat1;
+        double deltaLon = lon2 - lon1;
+        double radius = 6371; 
+        
+        double h = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                   Math.cos(lat1) * Math.cos(lat2) *
+                   Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+        return 2 * radius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    }
+}
