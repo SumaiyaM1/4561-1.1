@@ -1,0 +1,42 @@
+package search_methods;
+
+import java.util.*;
+
+public class DepthFirstSearch {
+    private Map<String, List<String>> graph;
+
+    public DepthFirstSearch(Map<String, List<String>> graph) {
+        this.graph = graph;
+    }
+
+    public List<String> findRoute(String start, String goal) {
+        Set<String> explored = new HashSet<>();
+        List<String> path = new ArrayList<>();
+
+        if (depthFirstSearch(start, goal, explored, path)) {
+            Collections.reverse(path);
+            return path;
+        }
+        return null;
+    }
+
+    private boolean depthFirstSearch(String current, String goal, Set<String> explored, List<String> path) {
+        explored.add(current);
+        path.add(current);
+
+        if (current.equals(goal)) {
+            return true;
+        }
+
+        for (String neighbor : graph.getOrDefault(current, Collections.emptyList())) {
+            if (!explored.contains(neighbor)) {
+                if (depthFirstSearch(neighbor, goal, explored, path)) {
+                    return true;
+                }
+            }
+        }
+
+        path.remove(path.size() - 1);
+        return false;
+    }
+}
