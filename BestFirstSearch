@@ -1,0 +1,83 @@
+package search_methods;
+
+import java.util.*;
+
+public class BestFirstSearch {
+    private Map<String, List<String>> graph;
+    private Map<String, Town> cityData;
+
+    public BestFirstSearch(Map<String, List<String>> graph, Map<String, Town> cityData) {
+        this.graph = graph;
+        this.cityData = cityData;
+    }
+
+    public List<String> findRoute(String start, String goal) {
+        PriorityQueue<RouteNode> queue = new PriorityQueue<>(Comparator.comparingDouble(n -> n.heuristicCost));
+        Map<String, String> predecessors = new HashMap<>();
+        Set<String> visited = new HashSet<>();
+
+        queue.add(new RouteNode(start, 0.0));
+
+        while (!queue.isEmpty()) {
+            RouteNode current = queue.poll();
+            String city = current.name;
+
+            if (city.equals(goal)) {
+                return reconstructPath(predecessors, start, goal);
+            }
+
+            if (!visited.contains(city)) {
+                visited.add(city);
+                for (String neighbor : graph.getOrDefault(city, Collections.emptyList())) {
+                    if (!visited.contains(neighbor)) {
+                        double cost = estimateDistance(neighbor, goal);
+                        queue.add(new RouteNode(neighbor, cost));
+                        predecessors.put(neighbor, city);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private double estimateDistance(String cityA, String cityB) {
+        Town first = cityData.get(cityA);
+        Town second = cityData.get(cityB);
+        return (first != null && second != null) ? calculateHaversine(first, second) : Double.MAX_VALUE;
+    }
+
+    private List<String> reconstructPath(Map<String, String> predecessors, String start, String goal) {
+        List<String> path = new ArrayList<>();
+        for (String step = goal; step != null; step = predecessors.get(step)) {
+            path.add(step);
+        }
+        Collections.reverse(path);
+        return path;
+    }
+
+    private double calculateHaversine(Town cityA, Town cityB) {
+        double lat1 = Math.toRadians(cityA.getLatitude());
+        double lon1 = Math.toRadians(cityA.getLongitude());
+        double lat2 = Math.toRadians(cityB.getLatitude());
+        double lon2 = Math.toRadians(cityB.getLongitude());
+
+        double dLat = lat2 - lat1;
+        double dLon = lon2 - lon1;
+        double earthRadius = 6371;
+
+        double h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                   Math.cos(lat1) * Math.cos(lat2) *
+                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * earthRadius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    }
+
+    private static class RouteNode {
+        String name;
+        double heuristicCost;
+
+        public RouteNode(String name, double heuristicCost) {
+            this.name = name;
+            this.heuristicCost = heuristicCost;
+        }
+    }
+}
