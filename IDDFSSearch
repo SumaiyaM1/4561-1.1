@@ -1,0 +1,50 @@
+package search_methods;
+
+import java.util.*;
+
+public class IDDFSSearch {
+    private Map<String, List<String>> graph;
+
+    public IDDFSSearch(Map<String, List<String>> graph) {
+        this.graph = graph;
+    }
+
+    public List<String> findRoute(String start, String goal) {
+        int depth = 0;
+        
+        while (true) {
+            Set<String> explored = new HashSet<>();
+            List<String> path = new ArrayList<>();
+            
+            if (depthLimitedSearch(start, goal, explored, path, depth)) {
+                return path;
+            }
+            depth++;
+        }
+    }
+
+    private boolean depthLimitedSearch(String current, String goal, Set<String> explored, List<String> path, int limit) {
+        if (current.equals(goal)) {
+            path.add(current);
+            return true;
+        }
+
+        if (limit == 0) {
+            return false;
+        }
+
+        explored.add(current);
+        path.add(current);
+        
+        for (String neighbor : graph.getOrDefault(current, Collections.emptyList())) {
+            if (!explored.contains(neighbor)) {
+                if (depthLimitedSearch(neighbor, goal, explored, path, limit - 1)) {
+                    return true;
+                }
+            }
+        }
+        
+        path.remove(path.size() - 1);
+        return false;
+    }
+}
